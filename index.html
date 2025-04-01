@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Matrix Challenge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Modals -->
+    <div class="modal fade" id="instructionsModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Game Instructions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul>
+                        <li>Match all pairs before time runs out</li>
+                        <li>Higher levels have less time</li>
+                        <li>Complete 5 levels per difficulty</li>
+                        <li>Select your preferred card type in settings</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="settingsModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Game Settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Card Type:</label>
+                        <select class="form-select" id="cardType">
+                            <option value="color">Colors</option>
+                            <option value="number">Numbers</option>
+                            <option value="letter">Letters</option>
+                            <option value="image">Images</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Theme:</label>
+                        <select class="form-select" id="themeSelect">
+                            <option value="default">Default</option>
+                            <option value="dark">Dark Mode</option>
+                            <option value="nature">Nature</option>
+                            <option value="cyber">Cyberpunk</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Audio:</label>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="musicToggle" checked>
+                            <label class="form-check-label" for="musicToggle">Background Music</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="sfxToggle" checked>
+                            <label class="form-check-label" for="sfxToggle">Sound Effects</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="leaderboardModal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Leaderboard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Player</th>
+                                <th>Score</th>
+                                <th>Difficulty</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Container -->
+    <div class="game-container">
+        <h1>Memory Matrix Challenge</h1>
+        
+        <!-- Control Buttons -->
+        <div class="controls-top mb-3">
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#instructionsModal">Instructions</button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">Settings</button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#leaderboardModal">Leaderboard</button>
+        </div>
+
+        <div class="game-controls-wrapper">
+            <div class="game-info-wrapper">
+                <div class="game-info">
+                    <div>
+                        <h3>Level</h3>
+                        <p id="level-display">1</p>
+                    </div>
+                    <div>
+                        <h3>Time Left</h3>
+                        <p id="timer-display">02:00</p>
+                    </div>
+                    <div>
+                        <h3>Score</h3>
+                        <p id="score-display">0</p>
+                    </div>
+                    <div>
+                        <h3>Moves</h3>
+                        <p id="moves-display">0</p>
+                    </div>
+                </div>
+
+                <div class="difficulty-selector">
+                    <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
+                    <button class="difficulty-btn" data-difficulty="medium">Medium</button>
+                    <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+                </div>
+            </div>
+
+            <div class="grid-container-wrapper">
+                <div class="grid-container easy" id="game-grid"></div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="start-btn">Start Game</button>
+        </div>
+
+        <div class="high-scores">
+            <h3>High Scores</h3>
+            <div class="scores-container">
+                <div class="score-column">
+                    <h4>Easy</h4>
+                    <p id="easy-high-score">0</p>
+                </div>
+                <div class="score-column">
+                    <h4>Medium</h4>
+                    <p id="medium-high-score">0</p>
+                </div>
+                <div class="score-column">
+                    <h4>Hard</h4>
+                    <p id="hard-high-score">0</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Elements -->
+    <audio id="backgroundMusic" loop>
+        <source src="assets/sounds/background.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="flipSound">
+        <source src="assets/sounds/flip.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="matchSound">
+        <source src="assets/sounds/match.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="gameOverSound">
+        <source src="assets/sounds/gameover.mp3" type="audio/mpeg">
+    </audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
