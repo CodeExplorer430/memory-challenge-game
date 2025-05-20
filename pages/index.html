@@ -5,10 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Memory Matrix Challenge</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <meta name="description" content="Test your memory skills with Memory Matrix Challenge, a fun card matching game with multiple difficulty levels.">
+    <link rel="icon" href="/assets/images/favicon.ico" type="image/x-icon">
+    
+    <!-- Open Graph meta tags for social sharing -->
+    <meta property="og:title" content="Memory Matrix Challenge">
+    <meta property="og:description" content="Test your memory with this fun card matching game!">
+    <meta property="og:image" content="/assets/images/og-image.jpg">
+    <meta property="og:url" content="https://yourdomain.com/memory-matrix">
+    <meta property="og:type" content="website">
 </head>
 <body>
-    <!-- Modals -->
+    <!-- Preloader to show while game assets are loading -->
+    <div class="preloader">
+        <h1 class="preloader-title">Memory Matrix</h1>
+        <div class="preloader-spinner"></div>
+        <p class="mt-3 text-center">Loading game...</p>
+    </div>
+
+    <!-- Game End Modal -->
+    <div class="modal fade" id="gameEndModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Game Over</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p id="gameEndMessage"></p>
+                    <p>Your score: <span id="finalScoreDisplay"></span></p>
+                    <div id="nameInputContainer">
+                        <label for="playerNameInput" class="form-label">Enter your name for the leaderboard:</label>
+                        <input type="text" class="form-control" id="playerNameInput">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" id="saveScoreBtn">Save Score</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instructions Modal -->
     <div class="modal fade" id="instructionsModal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -18,15 +59,32 @@
                 </div>
                 <div class="modal-body">
                     <ul>
-                        <li>Match all pairs before time runs out</li>
-                        <li>Higher levels have less time</li>
-                        <li>Complete 5 levels per difficulty</li>
-                        <li>Select your preferred card type in settings</li>
+                        <li>Find matching pairs of cards before time runs out</li>
+                        <li>Higher levels have more cards and less time</li>
+                        <li>Complete 5 levels to win each difficulty mode</li>
+                        <li>Choose from different card types in settings</li>
+                        <li>Your scores will be saved locally and to the global leaderboard if signed in</li>
+                    </ul>
+                    
+                    <h6>Difficulty Levels:</h6>
+                    <ul>
+                        <li><strong>Easy:</strong> 18 cards (9 pairs), starting with 2 minutes</li>
+                        <li><strong>Medium:</strong> 24 cards (12 pairs), starting with 1:45</li>
+                        <li><strong>Hard:</strong> 36 cards (18 pairs), starting with 1:30</li>
+                    </ul>
+                    
+                    <h6>Pro Tips:</h6>
+                    <ul>
+                        <li>Try to use patterns to memorize card positions</li>
+                        <li>Focus on finding a few pairs at a time</li>
+                        <li>Sign in to save your scores to the global leaderboard!</li>
                     </ul>
                 </div>
             </div>
         </div>
     </div>
+    
+    <!-- Settings Modal -->
     <div class="modal fade" id="settingsModal">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -41,7 +99,7 @@
                             <option value="color">Colors</option>
                             <option value="number">Numbers</option>
                             <option value="letter">Letters</option>
-                            <option value="image">Images</option>
+                            <option value="image">Emoji</option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -64,20 +122,52 @@
                             <label class="form-check-label" for="sfxToggle">Sound Effects</label>
                         </div>
                     </div>
+                    
+                    <div class="mb-3 local-auth-only">
+                        <label class="form-label">Player Name:</label>
+                        <input type="text" class="form-control" id="localUsername" placeholder="Enter your name">
+                        <button class="btn btn-primary mt-2" id="saveLocalName">Save Name</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Leaderboard Modal -->
     <div class="modal fade" id="leaderboardModal">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title">Leaderboard</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <table class="table">
+                    <div class="auth-buttons mb-4">
+                        <button id="googleLogin" class="btn btn-danger">
+                            <i class="bi bi-google"></i> Sign in with Google
+                        </button>
+                        <button id="facebookLogin" class="btn btn-primary">
+                            <i class="bi bi-facebook"></i> Sign in with Facebook
+                        </button>
+                        <div id="currentUser" class="current-user d-none"></div>
+                        <button id="logoutBtn" class="btn btn-secondary d-none">
+                            <i class="bi bi-box-arrow-right"></i> Sign out
+                        </button>
+                    </div>
+                    
+                    <form id="localLoginForm" class="local-auth-only mb-3">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="localNameInput" placeholder="Enter your display name">
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">Set Name</button>
+                            </div>
+                        </div>
+                        <div class="local-user-display d-none mt-2 text-end"></div>
+                    </form>
+                    
+                    <table class="table table-striped">
                         <thead>
                             <tr>
                                 <th>Rank</th>
@@ -88,6 +178,9 @@
                             </tr>
                         </thead>
                         <tbody id="leaderboardBody">
+                            <tr>
+                                <td colspan="5" class="text-center">Loading scores...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -97,13 +190,32 @@
 
     <!-- Game Container -->
     <div class="game-container">
-        <h1>Memory Matrix Challenge</h1>
+        <div class="header-wrapper">
+            <h1>Memory Matrix Challenge</h1>
+            
+            <div class="auth-section">
+                <div class="auth-buttons">
+                    <button id="mainGoogleLogin" class="btn btn-sm btn-danger firebase-only">
+                        <i class="bi bi-google"></i> Sign in
+                    </button>
+                    <button id="mainLogoutBtn" class="btn btn-sm btn-secondary d-none">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
         
         <!-- Control Buttons -->
         <div class="controls-top mb-3">
-            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#instructionsModal">Instructions</button>
-            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">Settings</button>
-            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#leaderboardModal">Leaderboard</button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#instructionsModal">
+                <i class="bi bi-question-circle"></i> Instructions
+            </button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#settingsModal">
+                <i class="bi bi-gear"></i> Settings
+            </button>
+            <button class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#leaderboardModal">
+                <i class="bi bi-trophy"></i> Leaderboard
+            </button>
         </div>
 
         <div class="game-controls-wrapper">
@@ -164,19 +276,79 @@
 
     <!-- Audio Elements -->
     <audio id="backgroundMusic" loop>
-        <source src="../assets/sounds/background.mp3" type="audio/mpeg">
+        <source src="/assets/sounds/background.mp3" type="audio/mpeg">
     </audio>
     <audio id="flipSound">
-        <source src="../assets/sounds/flip.mp3" type="audio/mpeg">
+        <source src="/assets/sounds/flip.mp3" type="audio/mpeg">
     </audio>
     <audio id="matchSound">
-        <source src="../assets/sounds/match.mp3" type="audio/mpeg">
+        <source src="/assets/sounds/match.mp3" type="audio/mpeg">
     </audio>
     <audio id="gameOverSound">
-        <source src="../assets/sounds/gameover.mp3" type="audio/mpeg">
+        <source src="/assets/sounds/gameover.mp3" type="audio/mpeg">
     </audio>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    
+    <!-- Game Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../scripts/main.js"></script>
+    <script src="/scripts/firebase-config.js"></script>
+    <script src="/scripts/auth.js"></script>
+    <script type="module" src="/scripts/main.js"></script>
+
+    <script>
+    // Preloader script
+    document.addEventListener('DOMContentLoaded', function() {
+        // Preload audio files
+        const audioFiles = [
+            document.getElementById('backgroundMusic'),
+            document.getElementById('flipSound'),
+            document.getElementById('matchSound'),
+            document.getElementById('gameOverSound')
+        ];
+        
+        // Count loaded assets
+        let loadedAssets = 0;
+        const totalAssets = audioFiles.length;
+        
+        function assetLoaded() {
+            loadedAssets++;
+            if (loadedAssets >= totalAssets) {
+                // All assets loaded, hide preloader
+                setTimeout(() => {
+                    document.querySelector('.preloader').classList.add('loaded');
+                }, 500); // Add a slight delay for smoother transition
+            }
+        }
+        
+        // Check if audio files are loaded or error
+        audioFiles.forEach(audio => {
+            if (audio) {
+                // Check if already loaded
+                if (audio.readyState >= 2) {
+                    assetLoaded();
+                } else {
+                    // Wait for loading
+                    audio.addEventListener('canplaythrough', assetLoaded, { once: true });
+                    audio.addEventListener('error', assetLoaded, { once: true });
+                    
+                    // Set a timeout in case loading takes too long
+                    setTimeout(assetLoaded, 3000);
+                }
+            } else {
+                // Skip missing audio elements
+                assetLoaded();
+            }
+        });
+        
+        // Fallback - hide preloader after maximum 5 seconds even if not all assets loaded
+        setTimeout(() => {
+            document.querySelector('.preloader').classList.add('loaded');
+        }, 5000);
+    });
+    </script>
 </body>
 </html>

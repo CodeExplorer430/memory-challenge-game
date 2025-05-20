@@ -1,17 +1,26 @@
-/* styles.css */
+/* Enhanced styles.css - Complete Version */
 :root {
     --primary-color: #6200ea;
     --primary-light: #9d46ff;
-    --primary-dark: #6200ea;
+    --primary-dark: #0a00b6;
+    --primary-color-rgb: 98, 0, 234;
     --secondary-color: #00e676;
     --secondary-light: #66ffa6;
     --secondary-dark: #00b248;
+    --secondary-color-rgb: 0, 230, 118;
+    --accent-color: #ff4081;
+    --accent-color-rgb: 255, 64, 129;
     --bg-color: #ecf0f1;
+    --bg-color-rgb: 236, 240, 241;
     --card-bg: #ffffff;
     --text-color: #000000;
-    --card-radius: 8px;
-    --container-radius: 12px;
-    --shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    --text-secondary: #757575;
+    --card-radius: 10px;
+    --container-radius: 16px;
+    --shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    --transition-speed: 0.3s;
+    --header-color: #f8f9fa;
+    --border-color: #e0e0e0;
 }
 
 * {
@@ -29,9 +38,65 @@ body {
     align-items: center;
     min-height: 100vh;
     padding: 16px;
-    transition: padding 0.3s ease;
+    transition: background-color var(--transition-speed) ease;
+    background-image: linear-gradient(135deg, rgba(0,0,0,0.02) 25%, transparent 25%, 
+                      transparent 50%, rgba(0,0,0,0.02) 50%, rgba(0,0,0,0.02) 75%, 
+                      transparent 75%, transparent);
+    background-size: 40px 40px;
 }
 
+/* ==================== PRELOADER STYLES ==================== */
+.preloader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-color, #121212);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+
+.preloader.loaded {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.preloader-title {
+    font-size: 2.5rem;
+    color: var(--primary-color, #6200ea);
+    margin-bottom: 24px;
+    font-weight: 700;
+    text-shadow: 0 2px 10px rgba(98, 0, 234, 0.2);
+}
+
+.preloader-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid rgba(98, 0, 234, 0.2);
+    border-radius: 50%;
+    border-top: 5px solid var(--secondary-color, #00e676);
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+}
+
+.preloader p {
+    margin-top: 20px;
+    color: var(--text-secondary, #757575);
+    font-size: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ==================== GAME CONTAINER STYLES ==================== */
 .game-container {
     background-color: white;
     border-radius: var(--container-radius);
@@ -39,7 +104,7 @@ body {
     width: 100%;
     max-width: 1000px;
     padding: 24px;
-    transition: all 0.3s ease;
+    transition: all var(--transition-speed) ease;
 }
 
 h1 {
@@ -47,7 +112,31 @@ h1 {
     color: var(--primary-color);
     margin-bottom: 24px;
     font-weight: 700;
-    font-size: 2rem;
+    font-size: 2.5rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: -0.5px;
+}
+
+.header-wrapper {
+    position: relative;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--primary-light);
+}
+
+.auth-section {
+    position: absolute;
+    top: 0;
+    right: 0;
+}
+
+/* ==================== GAME INFO STYLES ==================== */
+.game-info-wrapper {
+    background-color: var(--header-color);
+    border-radius: var(--card-radius);
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .game-info {
@@ -60,26 +149,36 @@ h1 {
 
 .game-info div {
     text-align: center;
-    padding: 12px;
-    background-color: #f0f7ff;
+    padding: 15px;
+    background-color: white;
     border-radius: var(--card-radius);
     flex: 1;
     min-width: 90px;
     border-left: 4px solid var(--primary-color);
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.game-info div:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .game-info h3 {
     font-size: 0.9rem;
     margin-bottom: 5px;
     color: var(--primary-dark);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
 }
 
 .game-info p {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     font-weight: bold;
 }
 
+/* ==================== DIFFICULTY SELECTOR STYLES ==================== */
 .difficulty-selector {
     display: flex;
     justify-content: center;
@@ -89,31 +188,44 @@ h1 {
 }
 
 .difficulty-btn {
-    padding: 10px 18px;
+    padding: 12px 24px;
     border: none;
     border-radius: 50px;
     font-weight: 600;
     background-color: #e0e0e0;
+    color: #666;
     cursor: pointer;
     transition: all 0.3s;
-    min-width: 90px;
+    min-width: 110px;
     margin: 5px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .difficulty-btn:hover {
     background-color: #d0d0d0;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .difficulty-btn.active {
     background-color: var(--primary-color);
     color: white;
-    box-shadow: 0 4px 8px rgba(98, 0, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(98, 0, 234, 0.3);
+}
+
+/* ==================== GRID CONTAINER STYLES ==================== */
+.grid-container-wrapper {
+    margin-bottom: 30px;
+    background-color: rgba(0, 0, 0, 0.02);
+    padding: 20px;
+    border-radius: var(--card-radius);
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .grid-container {
     display: grid;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 24px;
     justify-content: center;
 }
@@ -128,21 +240,43 @@ h1 {
 }
 
 .grid-container.hard {
-    grid-template-columns: repeat(9, 1fr);
+    grid-template-columns: repeat(6, 1fr);
 }
 
+/* ==================== CARD STYLES ==================== */
 .card {
     position: relative;
-    perspective: 1000px;
+    aspect-ratio: 1 / 1;
+    background-color: transparent; /* Changed from var(--card-bg) to transparent */
+    border-radius: var(--card-radius);
+    cursor: pointer;
+    min-height: 40px;
     transform-style: preserve-3d;
+    perspective: 1000px; /* Moved from card-inner to card */
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
 }
 
 .card-inner {
     position: relative;
     width: 100%;
     height: 100%;
-    transition: transform 0.5s;
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform-style: preserve-3d;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: var(--card-radius);
+}
+
+.card.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card.flipped:hover {
+    transform: translateY(-5px); /* Keep the hover effect when flipped */
 }
 
 .card-face {
@@ -150,18 +284,20 @@ h1 {
     width: 100%;
     height: 100%;
     backface-visibility: hidden;
+    -webkit-backface-visibility: hidden; /* Add for Safari */
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--card-radius);
 }
 
 .card-front {
-    background-color: #333;
+    background: linear-gradient(135deg, #333, #222);
     color: transparent;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
 }
 
 .card-back {
-    /* Remove background-color declaration */
     transform: rotateY(180deg);
     color: white;
 }
@@ -172,8 +308,19 @@ h1 {
     border-radius: var(--card-radius);
 }
 
-.card.flipped .card-inner {
-    transform: rotateY(180deg);
+.card.matched {
+    opacity: 0.7;
+    cursor: default;
+}
+
+.card.matched .card-inner {
+    box-shadow: none;
+    animation: pulse 0.6s;
+}
+
+.card.highlight-match .card-inner {
+    box-shadow: 0 0 15px var(--secondary-color), 0 0 30px var(--secondary-light);
+    z-index: 10;
 }
 
 /* Make number and letter text more visible */
@@ -181,38 +328,27 @@ h1 {
     color: white;
     font-size: 2rem;
     font-weight: bold;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.card {
-    aspect-ratio: 1 / 1;
-    background-color: var(--card-bg);
-    border-radius: var(--card-radius);
-    cursor: pointer;
-    transition: transform 0.3s, background-color 0.3s, box-shadow 0.3s;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+.image {
+    font-size: 2.5rem;
 }
 
-.card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+/* Safari-specific fix */
+@media not all and (min-resolution:.001dpcm) { 
+    @supports (-webkit-appearance:none) {
+        .card-inner {
+            -webkit-transform-style: preserve-3d;
+        }
+        
+        .card {
+            -webkit-perspective: 1000px;
+        }
+    }
 }
 
-.card.flipped {
-    transform: none;
-    background-color: transparent;
-}
-
-.card.matched {
-    opacity: 0.7;
-    cursor: default;
-    box-shadow: none;
-}
-
+/* ==================== CONTROLS STYLES ==================== */
 .controls {
     display: flex;
     flex-direction: column;
@@ -223,29 +359,44 @@ h1 {
     display: flex;
     gap: 10px;
     margin-bottom: 20px;
+    flex-wrap: wrap;
 }
 
 .control-btn {
     display: block;
     width: 100%;
-    padding: 12px;
+    padding: 16px;
     background-color: var(--secondary-color);
     color: #1a1a1a;
     border: none;
     border-radius: 50px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     transition: all 0.3s;
     box-shadow: 0 4px 8px rgba(0, 230, 118, 0.3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .control-btn:hover {
     background-color: var(--secondary-light);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 12px rgba(0, 230, 118, 0.4);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 15px rgba(0, 230, 118, 0.4);
 }
 
+.control-btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 230, 118, 0.4);
+}
+
+.control-btn.active {
+    background-color: var(--accent-color);
+    color: white;
+    box-shadow: 0 4px 8px rgba(255, 64, 129, 0.3);
+}
+
+/* ==================== HIGH SCORES STYLES ==================== */
 .high-scores {
     margin-top: 24px;
     padding-top: 20px;
@@ -256,7 +407,8 @@ h1 {
     text-align: center;
     margin-bottom: 16px;
     color: var(--primary-dark);
-    font-size: 1.2rem;
+    font-size: 1.4rem;
+    font-weight: 600;
 }
 
 .scores-container {
@@ -268,27 +420,228 @@ h1 {
 
 .score-column {
     text-align: center;
-    padding: 12px;
+    padding: 15px;
     background-color: #f0f7ff;
     border-radius: var(--card-radius);
     min-width: 100px;
     flex: 1;
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.score-column:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .score-column h4 {
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     color: var(--primary-color);
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .score-column p {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     font-weight: bold;
 }
 
-/* Bootstrap Modal Styling Overrides */
+/* ==================== NOTIFICATION STYLES ==================== */
+.notification {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 30px;
+    z-index: 1000;
+    font-size: 0.9rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 0.9;
+    transition: opacity 0.5s ease;
+    backdrop-filter: blur(5px);
+    animation: notification-slide-in 0.3s ease;
+}
+
+.notification.fade-out {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+}
+
+@keyframes notification-slide-in {
+    0% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    100% {
+        opacity: 0.9;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* ==================== LOADING STYLES ==================== */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    gap: 15px;
+}
+
+.loading-container p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.25rem;
+}
+
+/* Loading skeleton for leaderboard */
+.skeleton-loader {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 4px;
+    height: 20px;
+    margin-bottom: 8px;
+}
+
+@keyframes skeleton-loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ==================== TIMER STATES ==================== */
+.time-warning {
+    color: var(--accent-color) !important;
+    animation: pulse 1s infinite;
+}
+
+.time-critical {
+    color: #ff3d00 !important;
+    animation: pulse 0.5s infinite;
+}
+
+/* ==================== LEADERBOARD STYLES ==================== */
+.online-score {
+    background-color: rgba(98, 0, 234, 0.05);
+}
+
+.auth-buttons {
+    margin: 15px 0;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.auth-buttons.logged-in {
+    justify-content: flex-end;
+}
+
+.current-user {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+/* ==================== ENHANCED NAME INPUT STYLES ==================== */
+.name-input-container {
+    margin-bottom: 20px;
+}
+
+.name-input-container .form-control {
+    height: 45px;
+    font-size: 1rem;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    transition: all 0.3s ease;
+    box-shadow: none;
+}
+
+.name-input-container .form-control:focus {
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25);
+    border-color: var(--primary-color);
+}
+
+.name-save-btn {
+    width: 100%;
+    padding: 10px 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+}
+
+.current-user, 
+.local-user-display {
+    padding: 10px;
+    border-radius: 6px;
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+    margin: 10px 0;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Button animations */
+.name-save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(var(--primary-color-rgb), 0.3);
+}
+
+.name-save-btn:active {
+    transform: translateY(1px);
+}
+
+/* Feedback animation for successful name save */
+@keyframes nameSaved {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.name-saved {
+    animation: nameSaved 0.5s ease;
+}
+
+/* Style for the leaderboard page name input */
+.leaderboard-name-input {
+    display: flex;
+    align-items: center;
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    background-color: rgba(var(--primary-color-rgb), 0.05);
+    border-radius: 8px;
+}
+
+.leaderboard-name-input input {
+    flex: 1;
+}
+
+.leaderboard-name-input button {
+    margin-left: 10px;
+    min-width: 100px;
+}
+
+/* Custom styling for specific inputs */
+#localNameInput,
+#playerNameInput,
+#localUsername {
+    border: 2px solid rgba(var(--primary-color-rgb), 0.3);
+    background-color: rgba(var(--bg-color-rgb, 255, 255, 255), 0.8);
+}
+
+/* ==================== MODAL STYLING OVERRIDES ==================== */
 .modal-content {
-    background-color: #1e1e1e; /* Dark background to match game theme */
-    color: #e0e0e0; /* Light text for dark mode */
+    background-color: var(--card-bg, #1e1e1e);
+    color: var(--text-color, #e0e0e0);
     border-radius: var(--container-radius);
     max-width: 90%;
     width: 450px;
@@ -296,12 +649,14 @@ h1 {
     overflow-y: auto;
     position: relative;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    margin: 0 auto; /* Center modal */
+    margin: 0 auto;
+    border: none;
+    transition: all var(--transition-speed) ease;
 }
 
 .modal-header {
     padding: 20px 20px 10px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--header-color, #333);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -309,14 +664,32 @@ h1 {
 
 .modal-title {
     font-size: 1.5rem;
-    color: var(--primary-color);
+    color: var(--primary-color, #BB86FC);
     margin: 0;
+    font-weight: 600;
 }
 
 .btn-close {
     background-color: transparent;
-    filter: invert(1); /* Make the close button white */
     opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.theme-default .btn-close,
+.theme-nature .btn-close,
+body:not(.theme-dark):not(.theme-cyber) .btn-close {
+    filter: none;
+}
+
+.theme-dark .btn-close,
+.theme-cyber .btn-close {
+    filter: invert(1);
+}
+
+@media (prefers-color-scheme: dark) {
+    .btn-close {
+        filter: invert(1);
+    }
 }
 
 .btn-close:hover {
@@ -327,40 +700,104 @@ h1 {
     padding: 20px;
 }
 
-.modal-body ul {
-    padding-left: 20px;
+.modal-footer {
+    border-top: 1px solid var(--header-color, #333);
+    padding: 15px 20px;
 }
 
-.modal-body li {
-    margin-bottom: 12px;
-    line-height: 1.4;
-}
-
-/* Settings form elements */
-.form-label {
-    display: block;
-    margin-bottom: 8px;
-    color: #ccc;
+/* Form elements inside modals */
+.modal .form-label {
+    color: var(--text-color, #ccc);
     font-weight: 500;
 }
 
-.form-select {
-    width: 100%;
-    padding: 10px;
-    border-radius: 6px;
+.modal .form-select,
+.modal .form-control {
+    background-color: var(--header-color, #333);
+    color: var(--text-color, #fff);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s;
+}
+
+.modal .form-select:focus,
+.modal .form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb, 157, 70, 255), 0.2);
+}
+
+/* Theme-based modal styles */
+.theme-default .modal-content {
+    background-color: #ffffff;
+    color: #000000;
+}
+
+.theme-default .modal-header {
+    border-bottom-color: #eaeaea;
+}
+
+.theme-default .modal-footer {
+    border-top-color: #eaeaea;
+}
+
+.theme-default .form-select,
+.theme-default .form-control {
+    background-color: #f5f5f5;
+    color: #333;
+    border-color: #ddd;
+}
+
+.theme-dark .modal-content {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+}
+
+.theme-dark .modal-header,
+.theme-dark .modal-footer {
+    border-color: #333;
+}
+
+.theme-dark .form-select,
+.theme-dark .form-control {
     background-color: #333;
     color: #fff;
-    border: 1px solid #444;
-    font-size: 1rem;
+    border-color: #444;
 }
 
-.form-select:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(98, 0, 234, 0.2);
+.theme-nature .modal-content {
+    background-color: #f8fff8;
+    color: #2E7D32;
 }
 
-/* Make the modal backdrop darker */
+.theme-nature .modal-header,
+.theme-nature .modal-footer {
+    border-color: #C8E6C9;
+}
+
+.theme-nature .form-select,
+.theme-nature .form-control {
+    background-color: #fff;
+    color: #2E7D32;
+    border-color: #a5d6a7;
+}
+
+.theme-cyber .modal-content {
+    background-color: #0d1b2a;
+    color: #e6f1ff;
+}
+
+.theme-cyber .modal-header,
+.theme-cyber .modal-footer {
+    border-color: #1c2541;
+}
+
+.theme-cyber .form-select,
+.theme-cyber .form-control {
+    background-color: #1c2541;
+    color: #e6f1ff;
+    border-color: #3a506b;
+}
+
+/* Make the modal backdrop properly themed */
 .modal-backdrop {
     background-color: rgba(0, 0, 0, 0.8);
 }
@@ -369,45 +806,90 @@ h1 {
     opacity: 1;
 }
 
-/* Light mode adjustments */
-@media (prefers-color-scheme: light) {
-    .modal-content {
-        background-color: #fff;
-        color: #333;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-    }
-    
-    .settings-select {
-        background-color: #f5f5f5;
-        color: #333;
-        border: 1px solid #ddd;
-    }
-    
-    .modal-header {
-        border-bottom: 1px solid #eaeaea;
-    }
+/* ==================== BUTTON STYLES ==================== */
+.btn {
+    padding: 8px 16px;
+    border-radius: 30px;
+    font-weight: 500;
+    transition: all 0.2s;
 }
 
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(98, 0, 234, 0.3);
+}
+
+.btn-secondary {
+    background-color: #555;
+    border-color: #555;
+}
+
+.btn-secondary:hover {
+    background-color: #666;
+    border-color: #666;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.btn-danger {
+    background-color: #ff5252;
+    border-color: #ff5252;
+}
+
+.btn-danger:hover {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 82, 82, 0.3);
+}
+
+/* ==================== ACCESSIBILITY ==================== */
+/* Accessibility focus styles */
+:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.btn:focus, .form-control:focus, .card:focus {
+    box-shadow: 0 0 0 3px rgba(98, 0, 234, 0.25);
+}
+
+/* Screen reader only */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* ==================== ANIMATIONS ==================== */
 /* Animation for matched cards */
 @keyframes pulse {
     0% {
         transform: scale(1);
     }
-
     50% {
         transform: scale(1.1);
     }
-
     100% {
         transform: scale(1);
     }
 }
 
-.card.matched {
-    animation: pulse 0.6s;
-}
-
-/* Responsive design */
+/* ==================== RESPONSIVE DESIGN ==================== */
+/* Base mobile styles */
 @media (max-width: 768px) {
     body {
         padding: 10px;
@@ -418,8 +900,12 @@ h1 {
     }
 
     h1 {
-        font-size: 1.5rem;
+        font-size: 1.8rem;
         margin-bottom: 16px;
+    }
+    
+    .game-info p {
+        font-size: 1.2rem;
     }
 
     .grid-container.easy {
@@ -432,6 +918,11 @@ h1 {
 
     .grid-container.hard {
         grid-template-columns: repeat(6, 1fr);
+    }
+    
+    .control-btn {
+        padding: 12px;
+        font-size: 1rem;
     }
 }
 
@@ -517,6 +1008,42 @@ h1 {
         padding: 8px 15px;
         font-size: 0.9rem;
     }
+    
+    .game-info h3 {
+        font-size: 0.8rem;
+    }
+    
+    .game-info p {
+        font-size: 1.1rem;
+    }
+}
+
+/* ==================== THEMING ==================== */
+/* Light mode adjustments */
+@media (prefers-color-scheme: light) {
+    .modal-content {
+        background-color: #fff;
+        color: #333;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .form-select, .form-control {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+    }
+    
+    .modal-header {
+        border-bottom: 1px solid #eaeaea;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #eaeaea;
+    }
+    
+    .btn-close {
+        filter: none;
+    }
 }
 
 /* Dark mode support */
@@ -525,6 +1052,8 @@ h1 {
         --bg-color: #121212;
         --text-color: #e0e0e0;
         --card-bg: #2d2d2d;
+        --header-color: #1a1a1a;
+        --text-secondary: #aaa;
     }
 
     body {
@@ -561,5 +1090,52 @@ h1 {
 
     .score-column h4 {
         color: var(--primary-light);
+    }
+    
+    .notification {
+        background-color: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(5px);
+    }
+    
+    .skeleton-loader {
+        background: linear-gradient(90deg, #333 25%, #3a3a3a 50%, #333 75%);
+        background-size: 200% 100%;
+    }
+    
+    .preloader {
+        background-color: #121212;
+    }
+    
+    .preloader-title {
+        color: #BB86FC;
+    }
+    
+    .preloader-spinner {
+        border-color: rgba(187, 134, 252, 0.2);
+        border-top-color: #03DAC6;
+        box-shadow: 0 0 20px rgba(3, 218, 198, 0.3);
+    }
+    
+    .preloader p {
+        color: #aaaaaa;
+    }
+    
+    /* Theme-specific styles for dark mode */
+    .theme-dark .current-user,
+    .theme-dark .local-user-display {
+        background-color: rgba(187, 134, 252, 0.15);
+        color: #e0e0e0;
+    }
+
+    .theme-cyber .current-user,
+    .theme-cyber .local-user-display {
+        background-color: rgba(255, 45, 112, 0.15);
+        color: #e6f1ff;
+    }
+
+    .theme-nature .current-user,
+    .theme-nature .local-user-display {
+        background-color: rgba(46, 125, 50, 0.15);
+        color: #1B5E20;
     }
 }

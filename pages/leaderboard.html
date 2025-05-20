@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - Memory Matrix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/styles/styles.css">
+    <meta name="description" content="View top scores for Memory Matrix Challenge, a fun card matching game with multiple difficulty levels.">
+    <link rel="icon" href="/assets/images/favicon.ico" type="image/x-icon">
+    
+    <style>
+        /* Additional styles for the leaderboard page */
+        .leaderboard-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .page-header {
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--primary-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            background-color: #e0e0e0;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-btn:hover {
+            background-color: #d0d0d0;
+        }
+        
+        .filter-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .online-score {
+            background-color: rgba(98, 0, 234, 0.05);
+        }
+        
+        .my-score {
+            background-color: rgba(0, 230, 118, 0.1);
+            font-weight: 500;
+        }
+        
+        .table thead th {
+            background-color: var(--header-color);
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-light);
+        }
+        
+        @media (prefers-color-scheme: dark) {
+            .filter-btn {
+                background-color: #383838;
+                color: #e0e0e0;
+            }
+            
+            .filter-btn:hover {
+                background-color: #454545;
+            }
+            
+            .my-score {
+                background-color: rgba(0, 230, 118, 0.2);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4 mb-5 leaderboard-container">
+        <div class="page-header">
+            <h1>Global Leaderboard</h1>
+            
+            <div class="auth-buttons">
+                <button id="googleLogin" class="btn btn-danger">
+                    <i class="bi bi-google"></i> Sign in with Google
+                </button>
+                <button id="facebookLogin" class="btn btn-primary">
+                    <i class="bi bi-facebook"></i> Sign in with Facebook
+                </button>
+                <div id="currentUser" class="current-user d-none"></div>
+                <button id="logoutBtn" class="btn btn-secondary d-none">
+                    <i class="bi bi-box-arrow-right"></i> Sign out
+                </button>
+            </div>
+        </div>
+        
+        <form id="localLoginForm" class="local-auth-only mb-3">
+            <div class="row">
+                <div class="col-md-8">
+                    <input type="text" class="form-control" id="localNameInput" placeholder="Enter your display name">
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary w-100">Set Name</button>
+                </div>
+            </div>
+            <div class="local-user-display d-none mt-2 text-end"></div>
+        </form>
+        
+        <div class="filter-controls">
+            <div class="difficulty-filter">
+                <button class="filter-btn active" data-filter="all">All Difficulties</button>
+                <button class="filter-btn" data-filter="easy">Easy</button>
+                <button class="filter-btn" data-filter="medium">Medium</button>
+                <button class="filter-btn" data-filter="hard">Hard</button>
+            </div>
+            
+            <div class="ms-auto">
+                <button class="filter-btn" id="toggleMyScores">
+                    <i class="bi bi-person"></i> My Scores
+                </button>
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>Player</th>
+                        <th>Score</th>
+                        <th>Difficulty</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody id="globalLeaderboard">
+                    <tr><td colspan="5" class="text-center">Loading scores...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="index.html" class="btn btn-primary">
+                <i class="bi bi-controller"></i> Back to Game
+            </a>
+        </div>
+        
+        <div class="text-center mt-5 text-muted">
+            <p><small>Scores are updated in real time. Both online and local scores are displayed.</small></p>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/scripts/firebase-config.js"></script>
+    <script src="/scripts/auth.js"></script>
+    <script src="/scripts/leaderboard.js"></script>
+    
+    <script>
+        // Additional leaderboard page functionality
+        document.addEventListener('DOMContentLoaded', () => {
+            const filterBtns = document.querySelectorAll('.filter-btn[data-filter]');
+            const toggleMyScoresBtn = document.getElementById('toggleMyScores');
+            let currentFilter = 'all';
+            let showingMyScores = false;
+            
+            // Set up filter buttons
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.dataset.filter;
+                    applyFilters();
+                });
+            });
+            
+            // Toggle "My Scores" filter
+            toggleMyScoresBtn?.addEventListener('click', () => {
+                showingMyScores = !showingMyScores;
+                toggleMyScoresBtn.classList.toggle('active', showingMyScores);
+                applyFilters();
+            });
+            
+            // Apply both difficulty and "my scores" filters
+            function applyFilters() {
+                const rows = document.querySelectorAll('#globalLeaderboard tr');
+                const currentUser = window.authManager?.getCurrentUser()?.name || localStorage.getItem('playerName');
+                
+                rows.forEach(row => {
+                    // Get difficulty from the 4th cell (index 3)
+                    const difficulty = row.cells[3]?.textContent.toLowerCase() || '';
+                    // Get player name from the 2nd cell (index 1)
+                    const playerName = row.cells[1]?.textContent || '';
+                    
+                    // Determine if row should be visible
+                    const matchesDifficulty = currentFilter === 'all' || difficulty === currentFilter;
+                    const matchesPlayer = !showingMyScores || (currentUser && playerName === currentUser);
+                    
+                    // Show/hide row
+                    row.style.display = (matchesDifficulty && matchesPlayer) ? '' : 'none';
+                    
+                    // Highlight my scores
+                    if (currentUser && playerName === currentUser) {
+                        row.classList.add('my-score');
+                    } else {
+                        row.classList.remove('my-score');
+                    }
+                });
+            }
+            
+            // Apply initial filters
+            setTimeout(applyFilters, 1000); // Wait for leaderboard to load
+            
+            // Re-apply filters after leaderboard updates
+            const observer = new MutationObserver(() => {
+                applyFilters();
+            });
+            
+            const leaderboardBody = document.getElementById('globalLeaderboard');
+            if (leaderboardBody) {
+                observer.observe(leaderboardBody, { childList: true, subtree: true });
+            }
+        });
+    </script>
+</body>
+</html>
