@@ -70,56 +70,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load leaderboard from local storage
     function loadLocalLeaderboard() {
         try {
-            return JSON.parse(localStorage.getItem('memoryMatrixLeaderboard')) || [];
+            const localData = JSON.parse(localStorage.getItem('memoryMatrixLeaderboard') || "[]");
+            console.log("Local Storage Contents:", localData); // Debug line
+            return localData;
         } catch (e) {
-            console.error('Error loading local leaderboard:', e);
+            console.error("Local storage parse error:", e);
             return [];
         }
     }
     
     // Load leaderboard from Firebase
-    function loadFirebaseLeaderboard() {
-        return new Promise((resolve, reject) => {
-            if (typeof db === 'undefined') {
-                return resolve([]);
-            }
+    async function loadFirebaseLeaderboard() {
+        try {
+            if (typeof db === 'undefined') return [];
             
-            db.collection('scores')
+            const querySnapshot = await db.collection('scores')
                 .orderBy('score', 'desc')
                 .limit(100)
-                .get()
-                .then(querySnapshot => {
-                    const firebaseScores = [];
-                    querySnapshot.forEach(doc => {
-                        const data = doc.data();
-                        firebaseScores.push({
-                            name: data.name || 'Anonymous',
-                            score: data.score,
-                            difficulty: data.difficulty,
-                            date: new Date(data.timestamp?.toDate() || Date.now()).toLocaleDateString(),
-                            online: true
-                        });
-                    });
-                    resolve(firebaseScores);
-                })
-                .catch(error => {
-                    console.error('Leaderboard fetch error:', error);
-                    reject(error);
-                });
-        });
+                .get();
+
+            return querySnapshot.docs.map(doc => ({
+                ...doc.data(),
+                online: true,
+                timestamp: doc.data().timestamp?.toDate().getTime() || Date.now()
+            }));
+        } catch (error) {
+            console.error("Firebase load error:", error);
+            return [];
+        }
     }
     
     // Merge local and Firebase leaderboards
     function mergeLeaderboards(localScores, firebaseScores) {
-        // Add a source flag to local scores
-        const flaggedLocalScores = localScores.map(score => ({
-            ...score,
-            online: false
-        }));
-        
-        // Combine, sort by score, and take top 100
-        return [...flaggedLocalScores, ...firebaseScores]
-            .sort((a, b) => b.score - a.score)
+        // Normalize data formats
+        const normalize = (entry) => ({
+            name: entry.name || "Anonymous",
+            score: Number(entry.score) || 0,
+            difficulty: entry.difficulty || "easy",
+            date: entry.date || new Date().toLocaleDateString("en-GB"),
+            online: !!entry.online
+        });
+
+        return [...localScores.map(normalize), ...firebaseScores.map(normalize)]
+            .sort((a, b) => b.score - a.score || b.timestamp - a.timestamp)
+            .filter((v, i, a) => a.findIndex(t => t.name === v.name && t.score === v.score) === i) // Remove duplicates
             .slice(0, 100);
     }
     
@@ -127,23 +121,34 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayLeaderboard(leaderboard) {
         if (!leaderboardBody) return;
         
-        if (leaderboard.length === 0) {
+        if (!leaderboard || leaderboard.length === 0) {
             leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">No scores yet. Be the first to play!</td></tr>';
             return;
         }
         
-        leaderboardBody.innerHTML = leaderboard
-            .map((entry, index) => `
-                <tr${entry.online ? ' class="online-score"' : ''}>
-                    <td>${index + 1}</td>
-                    <td>${entry.name}</td>
-                    <td>${entry.score}</td>
-                    <td>${entry.difficulty}</td>
-                    <td>${entry.date}</td>
-                </tr>
-            `).join('');
+        // Debug log to check leaderboard data
+        console.log("Displaying leaderboard with", leaderboard.length, "entries:", leaderboard);
+        
+        // Clear existing content first
+        leaderboardBody.innerHTML = '';
+        
+        // Add each score row
+        leaderboard.forEach((entry, index) => {
+            const row = document.createElement('tr');
+            if (entry.online) row.classList.add('online-score');
+            
+            row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${entry.name || 'Anonymous'}</td>
+                <td>${Number(entry.score)}</td>
+                <td>${entry.difficulty || 'easy'}</td>
+                <td>${entry.date || new Date().toLocaleDateString()}</td>
+            `;
+            
+            leaderboardBody.appendChild(row);
+        });
     }
-    
+        
     // Add periodic refresh
     setInterval(loadLeaderboard, 30000); // Refresh every 30 seconds
 });

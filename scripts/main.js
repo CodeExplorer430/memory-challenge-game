@@ -101,13 +101,23 @@ import { accessibilityManager } from './game/accessibility.js';
             localStorage.setItem('memoryMatrixLeaderboard', JSON.stringify(this.leaderboard));
         },
         
-        addScore(playerName, score, difficulty) {
+       addScore(playerName, score, difficulty) {
+            // Ensure score is a number
+            const numericScore = parseInt(score, 10);
+            if (isNaN(numericScore)) {
+                console.error("Invalid score:", score);
+                return;
+            }
+
             const newScore = {
-                name: playerName,
-                score: score,
-                difficulty: difficulty,
-                date: new Date().toLocaleDateString()
+                name: playerName && playerName.trim() ? playerName.trim() : 'Anonymous',
+                score: numericScore, // Use the parsed integer
+                difficulty: difficulty && difficulty.toLowerCase() ? difficulty.toLowerCase() : 'easy',
+                date: new Date().toLocaleDateString(),
+                timestamp: Date.now() // Add timestamp for sorting
             };
+            
+            console.log("Adding score to leaderboard:", newScore); // Debugging
             
             // Add to local leaderboard
             this.leaderboard.push(newScore);
@@ -127,7 +137,7 @@ import { accessibilityManager } from './game/accessibility.js';
                     db.collection('scores').add({
                         userId: auth.currentUser.uid,
                         name: auth.currentUser.displayName || playerName,
-                        score: score,
+                        score: numericScore, // Use the parsed integer
                         difficulty: difficulty,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
@@ -137,25 +147,38 @@ import { accessibilityManager } from './game/accessibility.js';
             }
             
             // Update display if on leaderboard page
-            if (document.getElementById('leaderboardBody')) {
-                this.updateLeaderboardDisplay();
-            }
+            this.updateLeaderboardDisplay();
         },
         
         updateLeaderboardDisplay() {
             const tbody = document.getElementById('leaderboardBody');
             if (!tbody) return;
             
-            tbody.innerHTML = this.leaderboard
-                .map((entry, index) => `
-                    <tr>
-                        <td>${index + 1}</td>
-                        <td>${entry.name}</td>
-                        <td>${entry.score}</td>
-                        <td>${entry.difficulty}</td>
-                        <td>${entry.date}</td>
-                    </tr>
-                `).join('');
+            // Clear existing content
+            tbody.innerHTML = '';
+            
+            if (this.leaderboard.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">No scores yet. Be the first to play!</td></tr>';
+                return;
+            }
+            
+            // Ensure proper sorting by score (highest first)
+            const sortedLeaderboard = [...this.leaderboard].sort((a, b) => b.score - a.score);
+            
+            // Create and append rows
+            sortedLeaderboard.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${entry.name || 'Anonymous'}</td>
+                    <td>${entry.score}</td>
+                    <td>${entry.difficulty || 'easy'}</td>
+                    <td>${entry.date || new Date().toLocaleDateString()}</td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            console.log("Updated leaderboard display with", this.leaderboard.length, "entries");
         }
     };
     
@@ -558,20 +581,28 @@ import { accessibilityManager } from './game/accessibility.js';
         // Update high score
         const newRecord = updateHighScore();
         
+        // Ensure score is properly set before showing modal
+        const finalScore = gameState.score;
+        console.log("Final game score:", finalScore); // Debug logging
+        
         // Show game end modal
         setTimeout(() => {
             const message = won 
                 ? 'Congratulations! You completed all levels!' 
                 : 'Time\'s up! Game Over!';
                 
-            uiManager.showGameEndModal(message, gameState.score, (playerName) => {
-                leaderboardManager.addScore(playerName, gameState.score, gameState.currentDifficulty);
+            // Update UI elements first to ensure they display the correct score
+            document.getElementById('finalScoreDisplay').textContent = finalScore;
+            
+            uiManager.showGameEndModal(message, finalScore, (playerName) => {
+                // Pass the final score explicitly to prevent any state issues
+                leaderboardManager.addScore(playerName, finalScore, gameState.currentDifficulty);
             }, won);
             
             resetGame();
         }, 800);
     }
-    
+        
     /**
      * Update high score
      */
