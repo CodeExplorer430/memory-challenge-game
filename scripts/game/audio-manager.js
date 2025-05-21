@@ -1,371 +1,467 @@
 /**
  * Enhanced Audio Manager
  * 
- * Handles all game sounds and audio configuration with improved error handling
+ * Handles all game sounds and audio configuration with improved error handling,
+ * better accessibility, and additional sound effects for new game mechanics
  */
 class AudioManager {
     constructor() {
-        console.log("Initializing Audio Manager...");
-        
         // Try to get audio elements
-        this.bgMusic = document.getElementById('backgroundMusic');
-        this.flip = document.getElementById('flipSound');
-        this.match = document.getElementById('matchSound');
-        this.gameOver = document.getElementById('gameOverSound');
-        this.levelUp = document.getElementById('levelUpSound');
+        this.audioElements = {
+            bgMusic: document.getElementById('backgroundMusic'),
+            flip: document.getElementById('flipSound'),
+            match: document.getElementById('matchSound'),
+            gameOver: document.getElementById('gameOverSound'),
+            levelUp: document.getElementById('levelUpSound'),
+            combo: document.getElementById('comboSound'),
+            pause: null,  // Will be created dynamically
+            resume: null, // Will be created dynamically
+            victory: null, // Will be created dynamically
+            timeWarning: null // Will be created dynamically
+        };
         
-        this.musicToggle = document.getElementById('musicToggle');
-        this.sfxToggle = document.getElementById('sfxToggle');
+        // UI controls
+        this.controls = {
+            musicToggle: document.getElementById('musicToggle'),
+            sfxToggle: document.getElementById('sfxToggle')
+        };
         
-        // Check if elements were found
-        this.checkAudioElements();
+        // Audio state
+        this.state = {
+            musicEnabled: true,
+            sfxEnabled: true,
+            musicVolume: 0.4,
+            sfxVolume: 0.7,
+            lastPlayedTime: {},
+            audioContext: null,
+            audioBuffers: {},
+            audioSources: {},
+            preloadComplete: false,
+            hasInteracted: false
+        };
         
-        // Audio contexts for better performance
-        this.audioContext = null;
-        this.audioSources = {};
-        this.audioBuffers = {};
-        
-        // Preload status tracking
-        this.preloadComplete = false;
-        this.preloadPromise = null;
+        // Create missing audio elements
+        this.createMissingAudioElements();
         
         // Initialize audio settings from localStorage or defaults
         this.init();
     }
     
     /**
-     * Check if all required audio elements exist
+     * Create any missing audio elements programmatically
      */
-    checkAudioElements() {
-        const elements = {
-            'backgroundMusic': this.bgMusic,
-            'flipSound': this.flip,
-            'matchSound': this.match,
-            'gameOverSound': this.gameOver,
-            'levelUpSound': this.levelUp,
-            'musicToggle': this.musicToggle,
-            'sfxToggle': this.sfxToggle
-        };
+    createMissingAudioElements() {
+        // Check each required sound and create if missing
+        this.createAudioElementIfMissing('pause', '/assets/sounds/pause.mp3');
+        this.createAudioElementIfMissing('resume', '/assets/sounds/resume.mp3');
+        this.createAudioElementIfMissing('victory', '/assets/sounds/victory.mp3');
+        this.createAudioElementIfMissing('timeWarning', '/assets/sounds/timewarning.mp3');
         
-        // Check each element
-        let missingElements = [];
-        for (const [name, element] of Object.entries(elements)) {
-            if (!element) {
-                missingElements.push(name);
-                console.warn(`Audio element "${name}" not found`);
-                
-                // Create fallback element if it's an audio element
-                if (name.endsWith('Sound') || name === 'backgroundMusic') {
-                    this.createFallbackAudio(name);
-                }
-            }
-        }
-        
-        if (missingElements.length > 0) {
-            console.warn(`Missing audio elements: ${missingElements.join(', ')}`);
-        } else {
-            console.log("All audio elements found");
+        // Create combo sound if missing
+        if (!this.audioElements.combo) {
+            this.createAudioElementIfMissing('combo', '/assets/sounds/combo.mp3');
         }
     }
     
     /**
-     * Create a fallback audio element
-     * @param {string} id - Element ID
+     * Create an audio element if it doesn't already exist
      */
-    createFallbackAudio(id) {
-        // Create element if it doesn't exist
-        const audio = document.createElement('audio');
-        audio.id = id;
-        
-        if (id === 'backgroundMusic') {
-            audio.loop = true;
+    createAudioElementIfMissing(id, src) {
+        if (!this.audioElements[id]) {
+            const audio = document.createElement('audio');
+            audio.id = `${id}Sound`;
+            audio.preload = 'auto';
+            
+            // Try to set a source
+            const source = document.createElement('source');
+            source.src = src;
+            source.type = 'audio/mpeg';
+            audio.appendChild(source);
+            
+            // Add to document
+            document.body.appendChild(audio);
+            
+            // Update reference
+            this.audioElements[id] = audio;
+            
+            console.log(`Created audio element: ${id}Sound`);
         }
-        
-        // Try to set a default source based on convention
-        const type = id.replace('Sound', '').replace('background', 'background');
-        audio.src = `/assets/sounds/${type.toLowerCase()}.mp3`;
-        
-        // Add to document
-        document.body.appendChild(audio);
-        
-        // Update reference
-        this[id.replace('Sound', '').replace('background', 'bg')] = audio;
-        
-        console.log(`Created fallback audio element: ${id}`);
     }
     
+    /**
+     * Initialize audio system
+     */
     init() {
-        console.log("Initializing audio settings");
+        console.log("Initializing Audio Manager...");
+        
         // Get saved preferences or use defaults
-        const musicEnabled = localStorage.getItem('musicEnabled') !== 'false'; // Default to true
-        const sfxEnabled = localStorage.getItem('sfxEnabled') !== 'false'; // Default to true
+        this.state.musicEnabled = localStorage.getItem('musicEnabled') !== 'false'; // Default to true
+        this.state.sfxEnabled = localStorage.getItem('sfxEnabled') !== 'false'; // Default to true
+        
+        // Load volume preferences
+        this.state.musicVolume = parseFloat(localStorage.getItem('musicVolume') || '0.4');
+        this.state.sfxVolume = parseFloat(localStorage.getItem('sfxVolume') || '0.7');
         
         // Update toggle controls to match saved preferences
-        if (this.musicToggle) this.musicToggle.checked = musicEnabled;
-        if (this.sfxToggle) this.sfxToggle.checked = sfxEnabled;
-        
-        // Apply initial audio state (delayed to avoid autoplay issues)
-        setTimeout(() => {
-            this.updateBackgroundMusic();
-        }, 1000);
+        if (this.controls.musicToggle) this.controls.musicToggle.checked = this.state.musicEnabled;
+        if (this.controls.sfxToggle) this.controls.sfxToggle.checked = this.state.sfxEnabled;
         
         // Set up event listeners for audio controls
         this.setupEventListeners();
         
         // Initialize audio system based on browser capability
         this.initAudioSystem();
+        
+        // Set initial volumes
+        this.applyVolumeSettings();
     }
     
-    initAudioSystem() {
-        // Try to use Web Audio API for better performance if available
-        try {
-            // Only create AudioContext when user interacts, to avoid autoplay policies
-            const setupAudioContext = () => {
-                if (this.audioContext) return; // Already initialized
-                
-                const AudioContext = window.AudioContext || window.webkitAudioContext;
-                if (AudioContext) {
-                    this.audioContext = new AudioContext();
-                    
-                    // Optimize audio playback by pre-buffering audio files
-                    this.preloadAudio();
-                    
-                    // Remove the initialization listener once done
-                    document.removeEventListener('click', setupAudioContext);
-                    document.removeEventListener('touchstart', setupAudioContext);
-                }
-            };
+    /**
+     * Set up event listeners
+     */
+    setupEventListeners() {
+        // Music toggle
+        if (this.controls.musicToggle) {
+            this.controls.musicToggle.addEventListener('change', () => {
+                this.state.musicEnabled = this.controls.musicToggle.checked;
+                localStorage.setItem('musicEnabled', this.state.musicEnabled);
+                this.updateBackgroundMusic();
+            });
+        }
+        
+        // Sound effects toggle
+        if (this.controls.sfxToggle) {
+            this.controls.sfxToggle.addEventListener('change', () => {
+                this.state.sfxEnabled = this.controls.sfxToggle.checked;
+                localStorage.setItem('sfxEnabled', this.state.sfxEnabled);
+            });
+        }
+        
+        // Volume sliders
+        const musicVolumeSlider = document.getElementById('musicVolume');
+        if (musicVolumeSlider) {
+            // Set initial value
+            musicVolumeSlider.value = this.state.musicVolume * 100;
             
-            // Set up listeners to initialize on first interaction
-            document.addEventListener('click', setupAudioContext, { once: true });
-            document.addEventListener('touchstart', setupAudioContext, { once: true });
-        } catch (err) {
-            console.warn('Advanced audio features not available:', err);
-            // Fallback to standard HTML5 audio
+            // Listen for changes
+            musicVolumeSlider.addEventListener('input', () => {
+                this.state.musicVolume = parseInt(musicVolumeSlider.value, 10) / 100;
+                localStorage.setItem('musicVolume', this.state.musicVolume);
+                this.applyVolumeSettings();
+            });
+        }
+        
+        const sfxVolumeSlider = document.getElementById('sfxVolume');
+        if (sfxVolumeSlider) {
+            // Set initial value
+            sfxVolumeSlider.value = this.state.sfxVolume * 100;
+            
+            // Listen for changes
+            sfxVolumeSlider.addEventListener('input', () => {
+                this.state.sfxVolume = parseInt(sfxVolumeSlider.value, 10) / 100;
+                localStorage.setItem('sfxVolume', this.state.sfxVolume);
+            });
+        }
+        
+        // Listen for user interaction to initialize audio
+        const userInteractionEvents = ['click', 'touchstart', 'keydown'];
+        const handleUserInteraction = () => {
+            if (!this.state.hasInteracted) {
+                this.state.hasInteracted = true;
+                this.startAudio();
+                
+                // Remove event listeners once interaction has occurred
+                userInteractionEvents.forEach(event => {
+                    document.removeEventListener(event, handleUserInteraction);
+                });
+            }
+        };
+        
+        userInteractionEvents.forEach(event => {
+            document.addEventListener(event, handleUserInteraction, { once: false });
+        });
+    }
+    
+    /**
+     * Initialize the Web Audio API if supported
+     */
+    initAudioSystem() {
+        // Check if Web Audio API is supported
+        if (window.AudioContext || window.webkitAudioContext) {
+            try {
+                // Initialize only on first interaction to avoid autoplay issues
+                document.addEventListener('click', this.initWebAudio.bind(this), { once: true });
+                document.addEventListener('touchstart', this.initWebAudio.bind(this), { once: true });
+                document.addEventListener('keydown', this.initWebAudio.bind(this), { once: true });
+            } catch (err) {
+                console.warn('Web Audio API initialization error:', err);
+                // Will fallback to standard HTML5 audio
+            }
         }
     }
     
+    /**
+     * Initialize Web Audio API on user interaction
+     */
+    initWebAudio() {
+        if (this.state.audioContext) return; // Already initialized
+        
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.state.audioContext = new AudioContext();
+            
+            // Resume audio context if suspended
+            if (this.state.audioContext.state === 'suspended') {
+                this.state.audioContext.resume();
+            }
+            
+            // Preload audio files
+            this.preloadAudio();
+            
+            console.log('Web Audio API initialized');
+        } catch (err) {
+            console.warn('Web Audio API initialization error:', err);
+        }
+    }
+    
+    /**
+     * Start audio playback once user has interacted
+     */
+    startAudio() {
+        // Init Web Audio if not already done
+        this.initWebAudio();
+        
+        // Start background music if enabled
+        this.updateBackgroundMusic();
+    }
+    
+    /**
+     * Preload audio files for better performance
+     */
     preloadAudio() {
-        // Skip if already preloaded or in progress
-        if (this.preloadComplete || this.preloadPromise) return this.preloadPromise;
+        if (this.state.preloadComplete || !this.state.audioContext) return;
         
-        const audioFiles = {
-            'bgMusic': this.bgMusic ? this.bgMusic.src : null,
-            'flip': this.flip ? this.flip.src : null,
-            'match': this.match ? this.match.src : null,
-            'gameOver': this.gameOver ? this.gameOver.src : null,
-            'levelUp': this.levelUp ? this.levelUp.src : null
-        };
+        console.log('Preloading audio files...');
         
-        // Filter out null entries
-        const validFiles = Object.entries(audioFiles).filter(([_, url]) => url);
-        console.log("Audio files to preload:", validFiles.map(([id]) => id));
+        // Create an array of files to preload
+        const audioFiles = Object.entries(this.audioElements)
+            .filter(([_, element]) => element && element.src)
+            .map(([id, element]) => ({ id, url: element.src }));
         
-        // Create a promise to track preloading completion
-        this.preloadPromise = Promise.all(
-            validFiles.map(([id, url]) => {
-                return fetch(url)
+        // Preload each file
+        Promise.all(
+            audioFiles.map(({ id, url }) => 
+                fetch(url)
                     .then(response => response.arrayBuffer())
-                    .then(arrayBuffer => this.audioContext.decodeAudioData(arrayBuffer))
+                    .then(arrayBuffer => this.state.audioContext.decodeAudioData(arrayBuffer))
                     .then(audioBuffer => {
-                        this.audioBuffers[id] = audioBuffer;
+                        this.state.audioBuffers[id] = audioBuffer;
+                        console.log(`Preloaded audio: ${id}`);
                         return id;
                     })
                     .catch(err => {
                         console.warn(`Failed to preload audio ${id}:`, err);
                         return null;
-                    });
-            })
+                    })
+            )
         ).then(results => {
             console.log('Audio preloading complete:', results.filter(Boolean));
-            this.preloadComplete = true;
-            return true;
+            this.state.preloadComplete = true;
         }).catch(err => {
             console.error('Audio preloading failed:', err);
-            return false;
         });
-        
-        return this.preloadPromise;
     }
     
-    setupEventListeners() {
-        if (this.musicToggle) {
-            this.musicToggle.addEventListener('change', () => {
-                localStorage.setItem('musicEnabled', this.musicToggle.checked);
-                this.updateBackgroundMusic();
-            });
+    /**
+     * Apply volume settings to all audio elements
+     */
+    applyVolumeSettings() {
+        // Set background music volume
+        if (this.audioElements.bgMusic) {
+            this.audioElements.bgMusic.volume = this.state.musicVolume;
         }
         
-        if (this.sfxToggle) {
-            this.sfxToggle.addEventListener('change', () => {
-                localStorage.setItem('sfxEnabled', this.sfxToggle.checked);
-            });
-        }
+        // Set volume for all effect sounds
+        Object.entries(this.audioElements).forEach(([key, element]) => {
+            if (key !== 'bgMusic' && element) {
+                element.volume = this.state.sfxVolume;
+            }
+        });
     }
     
-    // Update background music state based on toggle
+    /**
+     * Update background music state
+     */
     updateBackgroundMusic() {
-        if (!this.bgMusic) {
+        const bgMusic = this.audioElements.bgMusic;
+        if (!bgMusic) {
             console.warn("Background music element not available");
             return;
         }
         
-        if (this.musicToggle && this.musicToggle.checked) {
-            console.log("Starting background music");
-            this.bgMusic.volume = 0.4; // Slightly lower volume to prevent distortion
-            
-            // Use different playback method based on browser support
-            if (this.audioContext && this.audioBuffers['bgMusic']) {
-                this.playBufferedAudio('bgMusic', true);
-            } else {
-                this.bgMusic.play().catch(err => {
-                    console.log('Audio play failed:', err);
-                    // Provide visual feedback if autoplay is blocked
-                    if (err.name === 'NotAllowedError') {
-                        this.showPlayBlockedMessage();
-                        this.setupAutoplayFix();
-                    }
-                });
-            }
-        } else {
-            console.log("Pausing background music");
-            this.bgMusic.pause();
-            
-            // Also stop the buffered version if using Web Audio API
-            if (this.audioSources['bgMusic']) {
-                try {
-                    this.audioSources['bgMusic'].stop();
-                } catch (e) {
-                    // Ignore if already stopped
+        // Set volume
+        bgMusic.volume = this.state.musicVolume;
+        
+        if (this.state.musicEnabled && this.state.hasInteracted) {
+            // Try to play music
+            bgMusic.play().catch(err => {
+                console.warn('Background music autoplay failed:', err);
+                
+                // Handle autoplay policy restrictions
+                if (err.name === 'NotAllowedError') {
+                    this.setupAutoplayFix();
                 }
-                delete this.audioSources['bgMusic'];
-            }
+            });
+        } else {
+            // Pause music
+            bgMusic.pause();
         }
     }
     
-    // Play a buffered audio file using Web Audio API
-    playBufferedAudio(id, loop = false) {
-        if (!this.audioContext || !this.audioBuffers[id]) return false;
-        
-        // Stop previous playback of this sound
-        if (this.audioSources[id]) {
-            try {
-                this.audioSources[id].stop();
-            } catch (e) {
-                // Ignore if already stopped
-            }
-        }
-        
-        try {
-            // Create a new audio source
-            const source = this.audioContext.createBufferSource();
-            source.buffer = this.audioBuffers[id];
-            source.loop = loop;
-            
-            // Create a gain node for volume control
-            const gainNode = this.audioContext.createGain();
-            gainNode.gain.value = id === 'bgMusic' ? 0.4 : 0.7;
-            
-            // Connect the source to the gain node and then to the output
-            source.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            // Start playback
-            source.start(0);
-            
-            // Save reference to the source
-            this.audioSources[id] = source;
-            
-            // Handle cleanup when the sound ends (if not looping)
-            if (!loop) {
-                source.onended = () => {
-                    delete this.audioSources[id];
-                };
-            }
-            
-            return true;
-        } catch (err) {
-            console.error(`Error playing buffered audio ${id}:`, err);
-            return false;
-        }
-    }
-    
-    // Show a notification that audio is blocked
-    showPlayBlockedMessage() {
-        const event = new CustomEvent('showNotification', {
-            detail: {
-                message: 'Click anywhere to enable audio',
-                duration: 5000
-            }
-        });
-        document.dispatchEvent(event);
-    }
-    
-    // Set up a fix for autoplay blocking
+    /**
+     * Set up a fix for autoplay blocking
+     */
     setupAutoplayFix() {
-        const startAudioOnce = () => {
-            // Resume audioContext if using Web Audio API
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                this.audioContext.resume().then(() => {
-                    if (this.musicToggle && this.musicToggle.checked) {
+        const handleInteraction = () => {
+            // Resume audio context if using Web Audio API
+            if (this.state.audioContext && this.state.audioContext.state === 'suspended') {
+                this.state.audioContext.resume().then(() => {
+                    if (this.state.musicEnabled) {
                         this.updateBackgroundMusic();
                     }
                 });
-            } else {
-                // Fallback to regular HTML5 audio
-                this.bgMusic.play().catch(() => {});
             }
             
-            document.body.removeEventListener('click', startAudioOnce);
+            // Try to play background music again
+            if (this.state.musicEnabled && this.audioElements.bgMusic) {
+                this.audioElements.bgMusic.play().catch(() => {});
+            }
+            
+            // Only need to do this once
+            document.removeEventListener('click', handleInteraction);
+            document.removeEventListener('touchstart', handleInteraction);
+            document.removeEventListener('keydown', handleInteraction);
         };
         
-        document.body.addEventListener('click', startAudioOnce);
+        // Set up interaction listeners
+        document.addEventListener('click', handleInteraction, { once: true });
+        document.addEventListener('touchstart', handleInteraction, { once: true });
+        document.addEventListener('keydown', handleInteraction, { once: true });
+        
+        // Show a notification about audio
+        document.dispatchEvent(new CustomEvent('showNotification', {
+            detail: {
+                message: 'Click or tap anywhere to enable audio',
+                duration: 5000,
+                type: 'info'
+            }
+        }));
     }
     
-    // Play a sound effect if enabled
-    play(soundId) {
+    /**
+     * Play a sound with throttling to prevent sound overlapping
+     * @param {string} soundId - The ID of the sound to play
+     * @param {number} throttleMs - Minimum time between plays of this sound (default: 100ms)
+     */
+    play(soundId, throttleMs = 100) {
         // Check if sound effects are enabled
-        if (this.sfxToggle && !this.sfxToggle.checked) return;
+        if (!this.state.sfxEnabled) return;
         
-        // Determine the sound element or buffer to play
-        let sound = null;
-        switch (soundId) {
-            case 'flip':
-                sound = this.flip;
-                break;
-            case 'match':
-                sound = this.match;
-                break;
-            case 'gameOver':
-                sound = this.gameOver;
-                break;
-            case 'levelUp':
-                sound = this.levelUp || this.match; // Fallback to match sound
-                break;
-            default:
-                sound = soundId; // Direct element passed in
+        // Get current time
+        const now = Date.now();
+        
+        // Check throttling
+        if (this.state.lastPlayedTime[soundId] && 
+            now - this.state.lastPlayedTime[soundId] < throttleMs) {
+            return;
+        }
+        
+        // Update last played time
+        this.state.lastPlayedTime[soundId] = now;
+        
+        // Determine the sound element to play
+        let sound = this.audioElements[soundId];
+        
+        // Fallback to match sound for some special effects if missing
+        if (!sound && ['levelUp', 'victory', 'combo'].includes(soundId)) {
+            sound = this.audioElements.match;
+        }
+        
+        if (!sound) {
+            console.warn(`Sound ${soundId} not found`);
+            return;
         }
         
         // First try to play using the Web Audio API for better performance
-        if (this.audioContext && this.audioBuffers[soundId]) {
-            this.playBufferedAudio(soundId);
-        } else if (sound && typeof sound !== 'string') {
+        if (this.state.audioContext && this.state.audioBuffers[soundId]) {
+            this.playWithWebAudio(soundId);
+        } else {
             // Fallback to HTML5 Audio
             try {
+                // Reset playback position
                 sound.currentTime = 0;
-                sound.volume = 0.7; // Slightly lower volume to prevent distortion
+                
+                // Set volume
+                sound.volume = this.state.sfxVolume;
+                
+                // Play the sound
                 sound.play().catch((err) => {
                     console.warn(`Failed to play sound ${soundId}:`, err);
                 });
             } catch (err) {
                 console.warn(`Error playing sound ${soundId}:`, err);
             }
-        } else {
-            console.warn(`Sound ${soundId} not found`);
         }
     }
     
-    // Convenience methods for specific sounds
+    /**
+     * Play a sound using Web Audio API
+     * @param {string} soundId - The ID of the sound to play
+     */
+    playWithWebAudio(soundId) {
+        if (!this.state.audioContext || !this.state.audioBuffers[soundId]) return;
+        
+        try {
+            // Stop previous playback of this sound
+            if (this.state.audioSources[soundId]) {
+                try {
+                    this.state.audioSources[soundId].stop();
+                } catch (e) {
+                    // Ignore if already stopped
+                }
+                delete this.state.audioSources[soundId];
+            }
+            
+            // Create a new audio source
+            const source = this.state.audioContext.createBufferSource();
+            source.buffer = this.state.audioBuffers[soundId];
+            
+            // Create a gain node for volume control
+            const gainNode = this.state.audioContext.createGain();
+            gainNode.gain.value = this.state.sfxVolume;
+            
+            // Connect the source to the gain node and then to the output
+            source.connect(gainNode);
+            gainNode.connect(this.state.audioContext.destination);
+            
+            // Start playback
+            source.start(0);
+            
+            // Save reference to the source
+            this.state.audioSources[soundId] = source;
+            
+            // Handle cleanup when the sound ends
+            source.onended = () => {
+                delete this.state.audioSources[soundId];
+            };
+        } catch (err) {
+            console.error(`Error playing sound ${soundId} with Web Audio:`, err);
+        }
+    }
+    
+    /**
+     * Convenience methods for specific sounds
+     */
     playFlip() {
         this.play('flip');
     }
@@ -378,39 +474,74 @@ class AudioManager {
         this.play('gameOver');
     }
     
-    // New method: play a level up celebration sound
     playLevelUp() {
-        // Use the levelUp sound if available, or fallback to match with modified pitch
-        if (this.levelUp) {
-            this.play('levelUp');
-        } else if (this.match) {
-            // Use the match sound but with special parameters for distinction
-            if (this.audioContext && this.audioBuffers['match']) {
-                const source = this.audioContext.createBufferSource();
-                source.buffer = this.audioBuffers['match'];
-                source.playbackRate.value = 1.3; // Slightly higher pitch
-                
-                const gainNode = this.audioContext.createGain();
-                gainNode.gain.value = 0.8; // Slightly louder
-                
-                source.connect(gainNode);
-                gainNode.connect(this.audioContext.destination);
-                source.start(0);
-            } else if (this.match) {
-                // Fallback to regular HTML5 audio
-                try {
-                    const clonedMatch = this.match.cloneNode();
-                    clonedMatch.volume = 0.8;
-                    if ('playbackRate' in clonedMatch) {
-                        clonedMatch.playbackRate = 1.3;
-                    }
-                    clonedMatch.play().catch(() => {});
-                } catch (err) {
-                    console.warn("Error playing level up sound:", err);
-                    // Last resort: just play the match sound
-                    this.playMatch();
-                }
+        this.play('levelUp', 500); // Longer throttle for level up
+    }
+    
+    playCombo() {
+        this.play('combo', 300);
+    }
+    
+    playPause() {
+        this.play('pause', 300);
+    }
+    
+    playResume() {
+        this.play('resume', 300);
+    }
+    
+    playVictory() {
+        this.play('victory', 500);
+    }
+    
+    /**
+     * Play a specific modified version of a sound
+     * @param {string} soundId - Base sound ID
+     * @param {object} options - Modification options
+     */
+    playModified(soundId, options = {}) {
+        if (!this.state.sfxEnabled || !this.state.audioContext) {
+            // Fall back to regular play
+            this.play(soundId);
+            return;
+        }
+        
+        const audioBuffer = this.state.audioBuffers[soundId];
+        if (!audioBuffer) {
+            this.play(soundId);
+            return;
+        }
+        
+        try {
+            // Create a new source
+            const source = this.state.audioContext.createBufferSource();
+            source.buffer = audioBuffer;
+            
+            // Apply pitch modification if specified
+            if (options.pitch) {
+                source.playbackRate.value = options.pitch;
             }
+            
+            // Create gain node for volume
+            const gainNode = this.state.audioContext.createGain();
+            gainNode.gain.value = options.volume || this.state.sfxVolume;
+            
+            // Connect nodes
+            source.connect(gainNode);
+            gainNode.connect(this.state.audioContext.destination);
+            
+            // Start playback
+            source.start(0);
+            
+            // Clean up
+            source.onended = () => {
+                source.disconnect();
+                gainNode.disconnect();
+            };
+        } catch (err) {
+            console.warn('Error playing modified sound:', err);
+            // Fall back to regular play
+            this.play(soundId);
         }
     }
 }

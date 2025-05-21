@@ -2,6 +2,7 @@
  * Enhanced Theme Manager
  * 
  * Handles game theme selection and application with improved color harmonies
+ * and better modal support
  */
 class ThemeManager {
     constructor() {
@@ -95,8 +96,8 @@ class ThemeManager {
         // Theme selector element
         this.themeSelect = document.getElementById('themeSelect');
         
-        // Initialize theme from localStorage or use default
-        this.init();
+        // Observer for dynamically created modals
+        this.modalObserver = null;
     }
     
     /**
@@ -148,6 +149,11 @@ class ThemeManager {
             if (!theme['--accent-color-rgb']) {
                 theme['--accent-color-rgb'] = this.hexToRgb(theme['--accent-color']);
             }
+            
+            // Add modal-specific colors for consistency
+            theme['--modal-bg'] = theme['--card-bg'];
+            theme['--modal-header-bg'] = theme['--header-color'];
+            theme['--modal-text'] = theme['--text-color'];
         });
     }
     
@@ -178,6 +184,7 @@ class ThemeManager {
         }
         this.setTheme(savedTheme);
         this.setupEventListeners();
+        this.setupModalObserver();
     }
     
     /**
@@ -195,7 +202,11 @@ class ThemeManager {
      * Set up event listeners
      */
     setupEventListeners() {
+        // Theme select dropdown
         if (this.themeSelect) {
+            // Set initial value
+            this.themeSelect.value = localStorage.getItem('selectedTheme') || this.detectPreferredTheme();
+            
             this.themeSelect.addEventListener('change', (e) => {
                 this.setTheme(e.target.value);
             });
@@ -212,6 +223,41 @@ class ThemeManager {
                         }
                     }
                 });
+        }
+        
+        // Listen for bootstrap modal events to apply theme to new modals
+        document.addEventListener('shown.bs.modal', (e) => {
+            this.applyThemeToModal(e.target);
+        });
+    }
+    
+    /**
+     * Set up MutationObserver to watch for dynamically added modals
+     */
+    setupModalObserver() {
+        // Setup MutationObserver to catch dynamically created modals
+        if (window.MutationObserver) {
+            this.modalObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                        mutation.addedNodes.forEach((node) => {
+                            // If a modal is added to the DOM, apply theme to it
+                            if (node.nodeType === 1 && node.classList && node.classList.contains('modal')) {
+                                this.applyThemeToModal(node);
+                            }
+                            
+                            // Check for modals within added nodes
+                            if (node.nodeType === 1 && node.querySelectorAll) {
+                                const modals = node.querySelectorAll('.modal');
+                                modals.forEach(modal => this.applyThemeToModal(modal));
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Start observing the document with the configured parameters
+            this.modalObserver.observe(document.body, { childList: true, subtree: true });
         }
     }
     
@@ -242,6 +288,55 @@ class ThemeManager {
         
         // Update buttons with theme-specific colors
         this.updateButtonStyles(themeName);
+        
+        // Apply theme to any existing modals
+        this.applyThemeToExistingModals();
+    }
+    
+    /**
+     * Apply theme to all existing modals
+     */
+    applyThemeToExistingModals() {
+        const modals = document.querySelectorAll('.modal');
+        modals.forEach(modal => {
+            this.applyThemeToModal(modal);
+        });
+    }
+    
+    /**
+     * Apply theme to a specific modal
+     * @param {HTMLElement} modal - The modal element to apply theme to
+     */
+    applyThemeToModal(modal) {
+        if (!modal) return;
+        
+        const themeName = localStorage.getItem('selectedTheme') || this.detectPreferredTheme();
+        const theme = this.themes[themeName] || this.themes.default;
+        
+        // Apply theme to modal content
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+            modalContent.style.backgroundColor = theme['--modal-bg'];
+            modalContent.style.color = theme['--modal-text'];
+            modalContent.style.borderColor = theme['--border-color'];
+        }
+        
+        // Apply theme to modal header
+        const modalHeader = modal.querySelector('.modal-header');
+        if (modalHeader) {
+            modalHeader.style.backgroundColor = theme['--modal-header-bg'];
+            modalHeader.style.borderColor = theme['--border-color'];
+        }
+        
+        // Apply theme to modal footer
+        const modalFooter = modal.querySelector('.modal-footer');
+        if (modalFooter) {
+            modalFooter.style.borderColor = theme['--border-color'];
+        }
+        
+        // Apply theme class to modal for additional styling
+        modal.classList.remove('theme-default', 'theme-dark', 'theme-nature', 'theme-cyber');
+        modal.classList.add(`theme-${themeName}`);
     }
     
     /**
